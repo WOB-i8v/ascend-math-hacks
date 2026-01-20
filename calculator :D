@@ -1,0 +1,118 @@
+// ==UserScript==
+// @name         Calculator :D
+// @namespace    http://tampermonkey.net/
+// @version      1.2
+// @description  Full Scientific Calculator on Alt + Q with Draggable UI.
+// @author       WOB
+// @match        https://g.myascendmath.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // 1. INJECT STYLE (Added Draggable Cursor and Header)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #sigma-calc {
+            position: fixed; top: 20%; left: 70%;
+            width: 350px; background: #1a1a1a; border: 2px solid #00ffff;
+            border-radius: 10px; z-index: 100000; display: none;
+            box-shadow: 0 0 20px rgba(0,255,255,0.5); font-family: 'Segoe UI', sans-serif;
+            padding: 0px 15px 15px 15px; user-select: none;
+        }
+        #sigma-header {
+            padding: 10px; cursor: move; color: #00ffff; font-size: 12px;
+            text-align: center; font-weight: bold; letter-spacing: 2px;
+        }
+        #sigma-calc-display {
+            width: 100%; height: 50px; background: #000; color: #0f0; border: 1px solid #333;
+            text-align: right; font-size: 24px; padding: 5px; margin-bottom: 10px; box-sizing: border-box;
+            cursor: text;
+        }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .calc-btn {
+            padding: 12px; background: #333; color: white; border: none; cursor: pointer;
+            border-radius: 4px; font-weight: bold; font-size: 14px;
+        }
+        .calc-btn:hover { background: #444; border: 1px solid #00ffff; }
+        .calc-btn.op { background: #444; color: #00ffff; }
+        .calc-btn.eq { background: #008888; grid-column: span 2; }
+    `;
+    document.head.appendChild(style);
+
+    // 2. CREATE CALCULATOR HTML
+    const calc = document.createElement('div');
+    calc.id = 'sigma-calc';
+    calc.innerHTML = `
+        <div id="sigma-header">::: SIGMA SCIENTIFIC HUD :::</div>
+        <input type="text" id="sigma-calc-display" readonly placeholder="0">
+        <div class="calc-grid">
+            <button class="calc-btn op">C</button><button class="calc-btn op">(</button><button class="calc-btn op">)</button><button class="calc-btn op">/</button>
+            <button class="calc-btn">7</button><button class="calc-btn">8</button><button class="calc-btn">9</button><button class="calc-btn op">*</button>
+            <button class="calc-btn">4</button><button class="calc-btn">5</button><button class="calc-btn">6</button><button class="calc-btn op">-</button>
+            <button class="calc-btn">1</button><button class="calc-btn">2</button><button class="calc-btn">3</button><button class="calc-btn op">+</button>
+            <button class="calc-btn">0</button><button class="calc-btn">.</button><button class="calc-btn op">^</button><button class="calc-btn op">sqrt</button>
+            <button class="calc-btn op">sin</button><button class="calc-btn op">cos</button><button class="calc-btn op">tan</button><button class="calc-btn op">log</button>
+            <button class="calc-btn eq">=</button><button class="calc-btn op" style="grid-column: span 2;">Close (Alt+Q)</button>
+        </div>
+    `;
+    document.body.appendChild(calc);
+
+    const display = document.getElementById('sigma-calc-display');
+
+    // 3. DRAGGABLE LOGIC
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+    const header = document.getElementById('sigma-header');
+
+    header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offset.x = e.clientX - calc.offsetLeft;
+        offset.y = e.clientY - calc.offsetTop;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        calc.style.left = (e.clientX - offset.x) + 'px';
+        calc.style.top = (e.clientY - offset.y) + 'px';
+        calc.style.transform = 'none'; // Remove centering transform when dragging starts
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // 4. MATH LOGIC
+    const handleInput = (val) => {
+        if (val === 'C') display.value = '';
+        else if (val === 'Close (Alt+Q)') calc.style.display = 'none';
+        else if (val === '=') {
+            try {
+                let formula = display.value
+                    .replace(/\^/g, '**') // Power support
+                    .replace(/sqrt/g, 'Math.sqrt')
+                    .replace(/sin/g, 'Math.sin')
+                    .replace(/cos/g, 'Math.cos')
+                    .replace(/tan/g, 'Math.tan')
+                    .replace(/log/g, 'Math.log10');
+                display.value = eval(formula);
+            } catch (e) { display.value = "Error"; }
+        } else {
+            display.value += val;
+        }
+    };
+
+    calc.addEventListener('click', (e) => {
+        if (e.target.classList.contains('calc-btn')) handleInput(e.target.innerText);
+    });
+
+    // 5. KEYBIND (Alt + Q)
+    window.addEventListener('keydown', (e) => {
+        if (e.altKey && e.key.toLowerCase() === 'q') {
+            e.preventDefault();
+            calc.style.display = (calc.style.display === 'none' || calc.style.display === '') ? 'block' : 'none';
+        }
+    });
+
+})();
