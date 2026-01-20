@@ -1,4 +1,4 @@
-open calculator whenever with ALt + Q. alt and alt + e think opens eaglercraft in basecamp. alt + w opens the font changer.the rest is just buttons and backround things. i'll compile these into one script eventually but rn i'm not doing that.  
+open calculator whenever with ALt + Q. alt and alt + e opens eaglercraft in basecamp. alt + w opens the font changer.the rest is just buttons and backround things. i'll compile these into one script eventually but rn i'm not doing that.  
 
 upcoming thigs:
 
