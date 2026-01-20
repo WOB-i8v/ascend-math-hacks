@@ -1,0 +1,127 @@
+// ==UserScript==
+// @name         Player Customizer
+// @namespace    http://tampermonkey.net/
+// @version      1.8
+// @description  Added a physical Apply button for URLs
+// @author       WOB
+// @match        https://g.myascendmath.com/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // 1. Stealth CSS to hide junk
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .resources, #resourcesDialog, #teacherWalkThroughDialog, a[onclick*="resources"] {
+            display: none !important;
+            visibility: hidden !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    const BASE_URL = "https://g.myascendmath.com/repository/images/climber_images/";
+    const presets = [
+        "climberTilt.png", "37.png", "1.png", "2.png", "3.png", "4.png", "5.png", "6.png",
+        "13.png", "15.png", "19.png", "27.png", "35.png", "MC_Climber.png", "snowboarder.png",
+        "surfer.png", "redParkaBoy.png", "pinkParkaGirl.png", "snoMan.png", "yeti.png",
+        "bluePenguin.png", "pinkPenguin.png"
+    ];
+
+    // 2. Create Menu UI
+    const menu = document.createElement('div');
+    Object.assign(menu.style, {
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        backgroundColor: '#1a1a1a', border: '2px solid #fff', padding: '15px',
+        zIndex: '10001', display: 'none', flexDirection: 'column', gap: '10px',
+        borderRadius: '8px', color: 'white', textAlign: 'center', width: '320px',
+        fontFamily: 'Arial, sans-serif', maxHeight: '90vh', overflowY: 'auto'
+    });
+
+    menu.innerHTML = `
+        <h3 style="margin:5px 0;">Climber Settings</h3>
+        <div id="preset-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background:#000; padding:10px; border-radius:5px;"></div>
+
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <input type="text" id="url-input" placeholder="Paste Image URL..." style="flex:1; padding:10px; background:#333; color:white; border:1px solid #555; border-radius:4px; outline:none; font-size:12px;">
+            <button id="apply-url-btn" style="padding:10px; cursor:pointer; background:#0066ff; color:white; border:none; border-radius:4px; font-weight:bold;">Apply</button>
+        </div>
+
+        <button id="file-btn" style="padding:10px; cursor:pointer; background:#444; color:white; border:1px solid #666; border-radius:4px; font-weight:bold;">Upload Image</button>
+        <button id="reset-btn" style="padding:10px; cursor:pointer; background:#600; color:white; border:none; border-radius:4px; font-weight:bold;">RESET</button>
+        <input type="file" id="file-input" accept="image/*" style="display:none;">
+    `;
+
+    const grid = menu.querySelector('#preset-grid');
+    presets.forEach(file => {
+        const img = document.createElement('img');
+        img.src = BASE_URL + file;
+        img.style.cssText = "width:50px; height:50px; cursor:pointer; border:1px solid #333; border-radius:4px; padding:2px;";
+        img.onclick = () => { swapClimber(img.src); menu.style.display = 'none'; };
+        grid.appendChild(img);
+    });
+
+    document.body.appendChild(menu);
+
+    const swapClimber = (src, isReset = false) => {
+        const climber = document.getElementById('climberIMG');
+        if (climber) {
+            climber.src = src;
+            if (isReset) { climber.style.height = "165px"; climber.style.width = "auto"; }
+            else { climber.style.height = "auto"; climber.style.maxHeight = "180px"; }
+        }
+        if (isReset) localStorage.removeItem('custom-climber-img');
+        else localStorage.setItem('custom-climber-img', src);
+    };
+
+    // 3. Button Logic
+    const handleUrlSubmit = () => {
+        const val = document.getElementById('url-input').value.trim();
+        if (val) {
+            swapClimber(val);
+            menu.style.display = 'none';
+            document.getElementById('url-input').value = "";
+        }
+    };
+
+    document.getElementById('apply-url-btn').onclick = handleUrlSubmit;
+
+    document.getElementById('url-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleUrlSubmit();
+    });
+
+    document.getElementById('file-btn').onclick = () => document.getElementById('file-input').click();
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { swapClimber(ev.target.result); menu.style.display = 'none'; };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    document.getElementById('reset-btn').onclick = () => {
+        swapClimber(BASE_URL + "climberTilt.png", true);
+        menu.style.display = 'none';
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.altKey && e.key.toLowerCase() === 'r') {
+            e.preventDefault();
+            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+        }
+    });
+
+    // 4. Persistence Loop
+    setInterval(() => {
+        const saved = localStorage.getItem('custom-climber-img');
+        const climber = document.getElementById('climberIMG');
+        if (climber) {
+            if (saved && climber.src !== saved) { climber.src = saved; climber.style.maxHeight = "180px"; }
+            else if (!saved) { climber.style.height = "165px"; }
+        }
+    }, 400);
+
+})();
