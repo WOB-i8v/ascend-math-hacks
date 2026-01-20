@@ -1,0 +1,98 @@
+// ==UserScript==
+// @name         80FPS Ticker, 2hr/999 Stats for basecamp
+// @namespace    http://tampermonkey.net/
+// @version      3.0
+// @description  yessirrr
+// @author       WOB
+// @match        https://g.myascendmath.com/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    console.log("%c[Sigma] Master Suite Active", "color: #00FFFF; font-weight: bold;");
+
+    // 1. PERFORMANCE ENGINE (Ticker Hijack)
+    const boostFPS = () => {
+        if (window.createjs && window.createjs.Ticker) {
+            window.createjs.Ticker.framerate = 80;
+            window.createjs.Ticker.setFPS(80);
+            window.createjs.Ticker.timingMode = window.createjs.Ticker.RAF;
+            return true;
+        }
+        return false;
+    };
+
+    // 2. STABILITY & STATS ENGINE
+    const applyStats = () => {
+        // Force internal time variables
+        if (typeof window.bcdATime !== 'undefined') {
+            window.bcdATime = "120";
+            window.unparsedTime = "120";
+            window.timeSpent = 0;
+        }
+
+        // Update Dashboard UI
+        const elements = {
+            'aTimeData': '2:00',
+            'tTimeData': '999',
+            'rankDisplay': 'Sigma'
+        };
+
+        for (let [id, val] of Object.entries(elements)) {
+            const el = document.getElementById(id);
+            if (el && el.innerText !== val) {
+                el.innerText = val;
+            }
+        }
+    };
+
+    // 3. GLOBAL BYPASSES & IMMORTALITY
+    const initBypasses = () => {
+        // Neutralize timers and locks
+        window.startTimer = () => { console.log("[Sigma] Timer Blocked."); return false; };
+        window.checkAndShowPauseStudentAlert = (url) => { window.parent.location.href = url; return false; };
+        window.disableButtons = () => false;
+
+        // Handle "Coming Soon" game locks
+        if (typeof window.comingSoon === 'function' && !window.comingSoon.isPatched) {
+            window.comingSoon = function(place) {
+                for(let i=3; i<=13; i++) {
+                    if(window.portalName && window.portalName(i) === place) {
+                        window.playGame(i);
+                        break;
+                    }
+                }
+            };
+            window.comingSoon.isPatched = true;
+        }
+    };
+
+    // 4. THE WATCHDOG (Continuous monitoring for dynamic page changes)
+    const observer = new MutationObserver(() => {
+        boostFPS();
+        applyStats();
+        initBypasses();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // 5. INITIALIZATION SEQUENCE
+    // Keep idleTime at zero to prevent logouts
+    setInterval(() => { window.idleTime = 0; }, 1000);
+
+    // Initial Ticker Check
+    const tickerCheck = setInterval(() => {
+        if (boostFPS()) clearInterval(tickerCheck);
+    }, 500);
+
+    // Delayed Soft Injection for stability
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            applyStats();
+            initBypasses();
+        }, 1000);
+    });
+
+})();
