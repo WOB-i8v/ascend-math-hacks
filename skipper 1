@@ -1,0 +1,87 @@
+// ==UserScript==
+// @name         skipper1
+// @namespace    http://tampermonkey.net/
+// @version      11.0
+// @description  Targets the specific answer1 leak found in multi-choice data.
+// @author       WOB
+// @match        https://g.myascendmath.com/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const bridge = new BroadcastChannel('ascend_deep_leak');
+
+    function scanData(obj) {
+        // 1. Check for the specific Multiple Choice leak you just found
+        // In your log, 'answer1' was the correct one (9n = 63)
+        if (obj.answer1 && obj.question && obj.answers) {
+            console.log("%c[LEAK] Multi-Choice Answer Found in answer1", "color: #00ffff;");
+            return obj.answer1;
+        }
+
+        // 2. Fallback for the 'type-in' questions we saw earlier
+        if (obj.answer && typeof obj.answer === 'string') {
+            return obj.answer;
+        }
+
+        // 3. Fallback for hidden 'correct' flags in arrays
+        if (Array.isArray(obj.answers)) {
+            for (let a of obj.answers) {
+                if (a.correct === true || a.isCorrect === "Y") {
+                    return a.answer || a.text;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(body) {
+        this.addEventListener('load', () => {
+            try {
+                const data = JSON.parse(this.responseText);
+                const leakedAns = scanData(data);
+
+                if (leakedAns) {
+                    bridge.postMessage(leakedAns);
+                    showGhostPopup(leakedAns);
+                }
+            } catch (e) {}
+        });
+        return originalSend.call(this, body);
+    };
+
+    function showGhostPopup(text) {
+        const id = 'ghost-v3';
+        let el = document.getElementById(id);
+        if (el) el.remove();
+
+        el = document.createElement('div');
+        el.id = id;
+        el.innerHTML = `<div style="font-size:12px; opacity:0.6;">CORRECT OPTION:</div>${text}`;
+
+        Object.assign(el.style, {
+            position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#000', color: '#00ff00', padding: '20px 40px',
+            borderRadius: '10px', border: '2px solid #00ff00', zIndex: '2147483647',
+            textAlign: 'center', fontFamily: 'monospace', fontSize: '24px',
+            boxShadow: '0 0 20px #00ff00', pointerEvents: 'none'
+        });
+
+        document.documentElement.appendChild(el);
+        document.title = "ANS: " + text;
+
+        setTimeout(() => {
+            el.style.transition = "opacity 1s";
+            el.style.opacity = "0";
+            setTimeout(() => el.remove(), 1000);
+        }, 5000);
+    }
+
+    bridge.onmessage = (e) => showGhostPopup(e.data);
+
+})();
