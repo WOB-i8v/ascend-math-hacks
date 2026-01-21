@@ -1,0 +1,94 @@
+// ==UserScript==
+// @name         skipper 2
+// @namespace    http://tampermonkey.net/
+// @version      9.0
+// @description  E
+// @author       WOB
+// @match        https://g.myascendmath.com/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    console.log("[GHOST] Script loaded in frame:", window.location.href);
+
+    const bridge = new BroadcastChannel('ascend_leak');
+
+    // --- 1. THE SNIFFER (Finds the answer) ---
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(body) {
+        this.addEventListener('load', () => {
+            try {
+                if (!this.responseText) return;
+                const data = JSON.parse(this.responseText);
+
+                // Check for common answer keys
+                let answer = data.answer || data.correctAnswer || data.solution;
+
+                // If found, broadcast it
+                if (answer) {
+                    console.log("%c[GHOST] LEAK FOUND: " + answer, "color: #00ff00; font-size: 16px;");
+                    bridge.postMessage(answer);
+                    showPopup(answer); // Show in current frame just in case
+                }
+            } catch (e) {
+                // Ignore non-JSON responses
+            }
+        });
+        return originalSend.call(this, body);
+    };
+
+    // --- 2. THE VISUALS (Shows the answer) ---
+    function showPopup(text) {
+        // Backup: Change Tab Title
+        document.title = "ANS: " + text;
+
+        // Main: The Popup
+        const existing = document.getElementById('ghost-popup');
+        if (existing) existing.remove();
+
+        const popup = document.createElement('div');
+        popup.id = 'ghost-popup';
+        popup.innerHTML = `<span style="color:#00ff00;">ANSWER:</span> <br> <span style="color:white; font-size:40px;">${text}</span>`;
+
+        Object.assign(popup.style, {
+            position: 'fixed',
+            top: '10%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            padding: '20px 50px',
+            borderRadius: '12px',
+            border: '3px solid #00ff00',
+            boxShadow: '0 0 50px rgba(0, 255, 0, 0.8)',
+            zIndex: '2147483647', // Maximum possible Z-Index
+            textAlign: 'center',
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            fontSize: '24px',
+            pointerEvents: 'none' // Click through it
+        });
+
+        // Attach to HTML root to prevent deletion
+        document.documentElement.appendChild(popup);
+
+        // Fade out
+        setTimeout(() => {
+            popup.style.transition = "opacity 1s";
+            popup.style.opacity = "0";
+            setTimeout(() => {
+                if (popup.parentNode) popup.parentNode.removeChild(popup);
+                document.title = "Ascend Math"; // Reset title
+            }, 1000);
+        }, 4000);
+    }
+
+    // --- 3. THE RECEIVER (Listens for other frames) ---
+    bridge.onmessage = (event) => {
+        // If another frame found the answer, show it here too
+        showPopup(event.data);
+    };
+
+})();
