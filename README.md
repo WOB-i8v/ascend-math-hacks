@@ -1,4 +1,4 @@
-ALt + q opens calculator.
+ALt + s opens calculator.
 alt + w opens the font changer.
 alt + r opens the player customizer.
 Alt+ z sends you to basecamp, ALt + x sends you to studyguide/start lesson, and Alt + c sends you to the menu.
