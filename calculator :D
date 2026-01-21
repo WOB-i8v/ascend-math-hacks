@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Calculator :D
+// @name         calculator
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Full Scientific Calculator on Alt + Q with Draggable UI.
+// @version      1.1
+// @description  Alt+S to open
 // @author       WOB
 // @match        https://g.myascendmath.com/*
 // @grant        none
@@ -11,107 +11,144 @@
 (function() {
     'use strict';
 
-    // 1. INJECT STYLE (Added Draggable Cursor and Header)
-    const style = document.createElement('style');
-    style.innerHTML = `
-        #sigma-calc {
-            position: fixed; top: 20%; left: 70%;
-            width: 350px; background: #1a1a1a; border: 2px solid #00ffff;
-            border-radius: 10px; z-index: 100000; display: none;
-            box-shadow: 0 0 20px rgba(0,255,255,0.5); font-family: 'Segoe UI', sans-serif;
-            padding: 0px 15px 15px 15px; user-select: none;
-        }
-        #sigma-header {
-            padding: 10px; cursor: move; color: #00ffff; font-size: 12px;
-            text-align: center; font-weight: bold; letter-spacing: 2px;
-        }
-        #sigma-calc-display {
-            width: 100%; height: 50px; background: #000; color: #0f0; border: 1px solid #333;
-            text-align: right; font-size: 24px; padding: 5px; margin-bottom: 10px; box-sizing: border-box;
-            cursor: text;
-        }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-        .calc-btn {
-            padding: 12px; background: #333; color: white; border: none; cursor: pointer;
-            border-radius: 4px; font-weight: bold; font-size: 14px;
-        }
-        .calc-btn:hover { background: #444; border: 1px solid #00ffff; }
-        .calc-btn.op { background: #444; color: #00ffff; }
-        .calc-btn.eq { background: #008888; grid-column: span 2; }
-    `;
-    document.head.appendChild(style);
-
-    // 2. CREATE CALCULATOR HTML
     const calc = document.createElement('div');
-    calc.id = 'sigma-calc';
+    calc.id = 'algebra-calc-pro';
+    Object.assign(calc.style, {
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        backgroundColor: '#111', border: '2px solid #fff', padding: '15px',
+        zIndex: '10002', display: 'none', flexDirection: 'column', gap: '8px',
+        borderRadius: '10px', boxShadow: '0 0 40px rgba(0,0,0,0.9)',
+        width: '420px', fontFamily: 'Arial, sans-serif', color: 'white'
+    });
+
     calc.innerHTML = `
-        <div id="sigma-header">::: SIGMA SCIENTIFIC HUD :::</div>
-        <input type="text" id="sigma-calc-display" readonly placeholder="0">
-        <div class="calc-grid">
-            <button class="calc-btn op">C</button><button class="calc-btn op">(</button><button class="calc-btn op">)</button><button class="calc-btn op">/</button>
-            <button class="calc-btn">7</button><button class="calc-btn">8</button><button class="calc-btn">9</button><button class="calc-btn op">*</button>
-            <button class="calc-btn">4</button><button class="calc-btn">5</button><button class="calc-btn">6</button><button class="calc-btn op">-</button>
-            <button class="calc-btn">1</button><button class="calc-btn">2</button><button class="calc-btn">3</button><button class="calc-btn op">+</button>
-            <button class="calc-btn">0</button><button class="calc-btn">.</button><button class="calc-btn op">^</button><button class="calc-btn op">sqrt</button>
-            <button class="calc-btn op">sin</button><button class="calc-btn op">cos</button><button class="calc-btn op">tan</button><button class="calc-btn op">log</button>
-            <button class="calc-btn eq">=</button><button class="calc-btn op" style="grid-column: span 2;">Close (Alt+Q)</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <span style="font-size:12px; color:#666; font-weight:bold;">SCIENTIFIC PRO</span>
+            <button id="calc-close" style="background:none; border:none; color:#555; cursor:pointer;">ESC to Close</button>
         </div>
+        <input type="text" id="calc-display" readonly style="width:100%; padding:15px; background:#000; color:#00ff00; border:1px solid #333; border-radius:4px; text-align:right; font-size:24px; box-sizing:border-box; margin-bottom:10px; font-family:monospace;">
+
+        <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:10px;">
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:5px;">
+                <button class="c-btn sci" data-val="(">(</button>
+                <button class="c-btn sci" data-val=")">)</button>
+                <button class="c-btn sci" id="calc-back" style="background:#442222;">Del</button>
+
+                <button class="c-btn sci" data-val="Math.sin(">sin</button>
+                <button class="c-btn sci" data-val="Math.cos(">cos</button>
+                <button class="c-btn sci" data-val="Math.tan(">tan</button>
+
+                <button class="c-btn sci" data-val="Math.log10(">log</button>
+                <button class="c-btn sci" data-val="Math.log(">ln</button>
+                <button class="c-btn sci" data-val="Math.PI">π</button>
+
+                <button class="c-btn sci" data-val="Math.sqrt(">√</button>
+                <button class="c-btn sci" data-val="**2">x²</button>
+                <button class="c-btn sci" data-val="**">xⁿ</button>
+
+                <button class="c-btn sci" data-val="Math.abs(">|x|</button>
+                <button class="c-btn sci" data-val="Math.E">e</button>
+                <button class="c-btn sci" data-val="Math.exp(">eⁿ</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;">
+                <button class="c-btn" style="background:#600; grid-column: span 2;" id="calc-clear">AC</button>
+                <button class="c-btn" data-val="/">÷</button>
+                <button class="c-btn" data-val="*">×</button>
+
+                <button class="c-btn" data-val="7">7</button>
+                <button class="c-btn" data-val="8">8</button>
+                <button class="c-btn" data-val="9">9</button>
+                <button class="c-btn" data-val="-">-</button>
+
+                <button class="c-btn" data-val="4">4</button>
+                <button class="c-btn" data-val="5">5</button>
+                <button class="c-btn" data-val="6">6</button>
+                <button class="c-btn" data-val="+">+</button>
+
+                <button class="c-btn" data-val="1">1</button>
+                <button class="c-btn" data-val="2">2</button>
+                <button class="c-btn" data-val="3">3</button>
+                <button id="calc-equals" style="background:#0066ff; grid-row: span 2;">=</button>
+
+                <button class="c-btn" style="grid-column: span 2;" data-val="0">0</button>
+                <button class="c-btn" data-val=".">.</button>
+            </div>
+        </div>
+        <button id="calc-copy" style="width:100%; margin-top:10px; padding:10px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; cursor:pointer; font-weight:bold;">COPY RESULT</button>
     `;
+
     document.body.appendChild(calc);
 
-    const display = document.getElementById('sigma-calc-display');
+    const styleBtn = () => {
+        document.querySelectorAll('button').forEach(btn => {
+            if(btn.id === 'calc-close') return;
+            Object.assign(btn.style, {
+                padding: '10px 2px', cursor: 'pointer', border: '1px solid #333',
+                borderRadius: '4px', background: btn.style.background || '#222',
+                color: 'white', fontWeight: 'bold', fontSize: '13px'
+            });
+        });
+    };
+    styleBtn();
 
-    // 3. DRAGGABLE LOGIC
-    let isDragging = false;
-    let offset = { x: 0, y: 0 };
-    const header = document.getElementById('sigma-header');
+    const display = document.getElementById('calc-display');
+    let currentInput = "";
 
-    header.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        offset.x = e.clientX - calc.offsetLeft;
-        offset.y = e.clientY - calc.offsetTop;
+    const updateDisplay = () => {
+        // Clean up the JS math strings for the user to read
+        display.value = currentInput
+            .replace(/Math\./g, '')
+            .replace(/\*\*/g, '^')
+            .replace(/\*/g, '×')
+            .replace(/\//g, '÷');
+    };
+
+    document.querySelectorAll('.c-btn[data-val]').forEach(btn => {
+        btn.onclick = () => {
+            currentInput += btn.getAttribute('data-val');
+            updateDisplay();
+        };
     });
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        calc.style.left = (e.clientX - offset.x) + 'px';
-        calc.style.top = (e.clientY - offset.y) + 'px';
-        calc.style.transform = 'none'; // Remove centering transform when dragging starts
-    });
+    document.getElementById('calc-back').onclick = () => {
+        currentInput = currentInput.slice(0, -1);
+        updateDisplay();
+    };
 
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
+    document.getElementById('calc-clear').onclick = () => {
+        currentInput = "";
+        display.value = "";
+    };
 
-    // 4. MATH LOGIC
-    const handleInput = (val) => {
-        if (val === 'C') display.value = '';
-        else if (val === 'Close (Alt+Q)') calc.style.display = 'none';
-        else if (val === '=') {
-            try {
-                let formula = display.value
-                    .replace(/\^/g, '**') // Power support
-                    .replace(/sqrt/g, 'Math.sqrt')
-                    .replace(/sin/g, 'Math.sin')
-                    .replace(/cos/g, 'Math.cos')
-                    .replace(/tan/g, 'Math.tan')
-                    .replace(/log/g, 'Math.log10');
-                display.value = eval(formula);
-            } catch (e) { display.value = "Error"; }
-        } else {
-            display.value += val;
+    document.getElementById('calc-equals').onclick = () => {
+        try {
+            const result = eval(currentInput);
+            display.value = result;
+            currentInput = result.toString();
+        } catch (e) {
+            display.value = "Syntax Error";
+            currentInput = "";
         }
     };
 
-    calc.addEventListener('click', (e) => {
-        if (e.target.classList.contains('calc-btn')) handleInput(e.target.innerText);
-    });
+    document.getElementById('calc-copy').onclick = () => {
+        navigator.clipboard.writeText(display.value);
+        const oldVal = display.value;
+        display.value = "COPIED";
+        setTimeout(() => display.value = oldVal, 500);
+    };
 
-    // 5. KEYBIND (Alt + Q)
+    const toggleCalc = () => {
+        calc.style.display = calc.style.display === 'none' ? 'flex' : 'none';
+    };
+
+    document.getElementById('calc-close').onclick = toggleCalc;
+
     window.addEventListener('keydown', (e) => {
-        if (e.altKey && e.key.toLowerCase() === 'q') {
+        if (e.altKey && e.key.toLowerCase() === 's') {
             e.preventDefault();
-            calc.style.display = (calc.style.display === 'none' || calc.style.display === '') ? 'block' : 'none';
+            toggleCalc();
         }
     });
 
