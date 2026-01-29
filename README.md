@@ -14,7 +14,9 @@ skipper 1 and 2 give you the answer to normal and multi choice questions. HOWEVE
 assesments 
 
 but i want to release it with it's varient. that is proving to be tricky since the data isn't sent by the server. anotherwords, imma have to set up a redirect or middleman server of some sort connected to an API for best results :/
-The rest is just buttons and backround things. i'll compile these into one script eventually but rn i'm not doing that.  
+The rest is just buttons and backround things. i'll compile these into one script eventually but rn i'm not doing that.
+
+this whole repository will be undergoing an update shortly.
 
 
 UPCOMING THINGS:
