@@ -1,4 +1,4 @@
-this is an unfinished project. it proabaly won't be finished.
+this is an unfinished project. it prob won't be finished.
 
 it's enough, even if buggy and crude.
 
