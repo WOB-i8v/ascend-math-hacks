@@ -1,1 +1,5 @@
-nothin to see here yet. i'll make the readme later.
+this is an unfinished project. it proabaly won't be finished.
+
+it's enough, even if buggy and crude.
+
+enjoy :)
